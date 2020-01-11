@@ -1,0 +1,35 @@
+local START_INTERVAL = 3
+local END_INTERVAL = 0.7
+local INTERVAL_DT = (START_INTERVAL - END_INTERVAL) / 60
+local SPEED_RATIO_DT = 2 / 60
+
+local function next_interval(interval)
+	return interval * vmath.lerp(math.random(), 0.7, 1.3)
+end
+
+function init(self)
+	self.timer = next_interval(START_INTERVAL)
+	self.interval = START_INTERVAL
+	self.speed_ratio = 1
+	self.spawning = true
+end
+
+function update(self, dt)
+	if self.spawning then
+		self.interval = self.interval - dt * INTERVAL_DT
+		self.speed_ratio = self.speed_ratio + SPEED_RATIO_DT * dt
+		self.timer = self.timer - dt
+		if self.timer <= 0 then
+			self.timer = next_interval(self.interval)
+			local bird_type = math.random(1, 6)
+			local bird_factory = "#bird" .. bird_type .. "_factory"
+			factory.create(bird_factory, nil, nil, {speed_ratio=self.speed_ratio}, nil)
+		end
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("stop-spawning") then
+		self.spawning = false
+	end
+end

@@ -1,0 +1,52 @@
+function init(self)
+	self.score_node = gui.get_node("score")
+	self.time_node = gui.get_node("time")
+	self.back_toast = gui.get_node("close")
+end
+
+local function scale_down(self, node)
+	local s = 1.0
+	gui.animate(node, gui.PROP_SCALE, vmath.vector4(s, s, s, 0), gui.EASING_OUT, 0.1)
+end
+
+local function fade_away(self, node)
+	local c = gui.get_color(node)
+	c.w = 0
+	gui.animate(node, gui.PROP_COLOR, c, gui.EASING_LINEAR, 0.5, 1)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("score_updated") then
+		gui.set_text(self.score_node, score_text(message.score))
+		local s = 1.2
+		gui.animate(self.score_node, gui.PROP_SCALE, vmath.vector4(s, s, s, 0), gui.EASING_OUT, 0.2, 0.0, scale_down)
+	end
+
+	if message_id == hash("time_updated") then
+		gui.set_text(self.time_node, time_text(message.time_until_end))
+		local s = 1.1
+		gui.animate(self.time_node, gui.PROP_SCALE, vmath.vector4(s, s, s, 0), gui.EASING_OUT, 0.1, 0.0, scale_down)
+	end
+
+	if message_id == hash("show_close_toast") then
+		local c = gui.get_color(self.back_toast)
+		c.w = 0.8
+		gui.animate(self.back_toast, gui.PROP_COLOR, c, gui.EASING_LINEAR, 0.5, 0, fade_away)
+	end
+end
+
+function score_text(score)
+	if score == 0 then
+		return "žádný zásah"
+	elseif score == 1 then
+		return "1 zásah"
+	elseif score >= 2 and score <= 4 then
+		return string.format("%s zásahy", score)
+	else
+		return string.format("%s zásahů", score)
+	end
+end
+
+function time_text(time)
+	return string.format("%s s zbývá", time)
+end

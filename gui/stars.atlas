@@ -1,0 +1,9 @@
+images {
+  image: "/assets/stars/0.png"
+}
+images {
+  image: "/assets/stars/2.png"
+}
+margin: 0
+extrude_borders: 2
+inner_padding: 0

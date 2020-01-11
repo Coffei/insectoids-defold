@@ -1,0 +1,99 @@
+local function shrinkback(self, node)
+	gui.animate(node, gui.PROP_SCALE, vmath.vector4(1, 1, 1, 0), gui.EASING_OUTCUBIC, 0.1)
+end
+
+local function clear_stars()
+	for i=1,5 do
+		gui.set_color(gui.get_node("stare" .. i), vmath.vector4(1, 1, 1, 0))
+		gui.set_color(gui.get_node("starf" .. i), vmath.vector4(1, 1, 1, 0))
+	end
+end
+
+local function show_stars(stars)
+	local delay = 0.5
+	for i=1,5 do
+		local mod
+		if i <= stars then mod = "f" else mod = "e" end
+		local node = gui.get_node(string.format("star%s%s", mod, i))
+		local smax = 1.2
+		gui.animate(node, gui.PROP_COLOR, vmath.vector4(1, 1, 1, 1), gui.EASING_INCUBIC, 0.2, delay)
+		gui.animate(node, gui.PROP_SCALE, vmath.vector4(smax, smax, smax, 0), gui.EASING_OUTCUBIC, 0.2, delay, shrinkback)
+		delay = delay + 0.4
+	end
+end
+
+local function compute_stars(total, score)
+	local perc = score / total
+	print(string.format("Finished with %d%%", perc * 100))
+	if perc > 0.9 then return 5
+	elseif perc > 0.8 then return 4
+	elseif perc > 0.6 then return 3
+	elseif perc > 0.4 then return 2
+	elseif perc > 0.2 then return 1
+	else return 0 end
+end
+
+local function endgame_show(self)
+	local color = gui.get_color(self.root)
+	color.w = 1
+	local smax = 1.2
+	clear_stars()
+	gui.set_scale(self.root, vmath.vector4(0.5, 0.5, 0.5, 0))
+	gui.animate(self.root, gui.PROP_COLOR, color, gui.EASING_OUTCUBIC, 0.2)
+	gui.animate(self.root, gui.PROP_SCALE, vmath.vector4(smax, smax, smax, 0), gui.EASING_OUTCUBIC, 0.2, 0, shrinkback)
+	show_stars(compute_stars(self.total_insects, self.score))
+end
+
+local function endgame_hide(self)
+	local color = gui.get_color(self.root)
+	color.w = 0
+	gui.set_color(self.root, color)
+	
+end
+
+local function endgame_score_text(score)
+	if score == 0 then
+		return "Nezabil jsi žádného hmyzáka"
+	elseif score == 1 then
+		return "Zabil jsi 1 hmyzáka"
+	elseif score >= 2 and score <= 4 then
+		return string.format("Zabil jsi %s hmyzáky", score)
+	else
+		return string.format("Zabil jsi %s hmyzáků", score)
+	end
+end
+
+function init(self)
+	self.score_node = gui.get_node("score")
+	self.root = gui.get_node("root")
+	self.current_star = 1
+	self.close_timeout = 0
+	self.showing = false
+end
+
+function update(self, dt)
+	self.close_timeout = math.max(0, self.close_timeout - dt)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("show") then
+		gui.set_text(self.score_node, endgame_score_text(message.score))
+		self.score = message.score
+		self.total_insects = message.total_insects
+		self.close_timeout = 2
+		self.showing = true
+		endgame_show(self)
+	end
+	if message_id ==hash("hide") then
+		endgame_hide(self)
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and action.pressed then
+		if self.showing and self.close_timeout == 0 and gui.pick_node(gui.get_node("root"), action.x, action.y) then
+			endgame_hide(self)
+			msg.post("main:/main#controller", "stop-game")
+		end
+	end
+end

@@ -1,0 +1,49 @@
+animations {
+  id: "flying"
+  images {
+    image: "/assets/sprites/insects/mosquito_00.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_01.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_02.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_03.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_04.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_05.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_06.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_07.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_08.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_09.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_10.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_11.png"
+  }
+  images {
+    image: "/assets/sprites/insects/mosquito_12.png"
+  }
+  playback: PLAYBACK_LOOP_FORWARD
+  fps: 24
+  flip_horizontal: 0
+  flip_vertical: 0
+}
+margin: 0
+extrude_borders: 2
+inner_padding: 0

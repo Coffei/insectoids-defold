@@ -1,0 +1,20 @@
+local rendercam = require "rendercam.rendercam"
+local MARGIN_TOP = 140
+local MARGIN_BOTTOM = 60
+
+function get_random_direction()
+	return math.random(0, 1)
+end
+
+function get_starting_position(direction, bound)
+	local world_min = rendercam.screen_to_world_2d(0, 0)
+	local world_max = rendercam.screen_to_world_2d(rendercam.window.x, rendercam.window.y)
+	local p = vmath.vector3()
+	if(direction == 0) then
+		p.x = world_max.x + bound
+	else
+		p.x = world_min.x - bound
+	end
+	p.y = vmath.lerp(math.random(), world_min.y + MARGIN_BOTTOM, world_max.y - MARGIN_TOP)
+	return p
+end

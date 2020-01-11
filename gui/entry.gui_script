@@ -1,0 +1,24 @@
+local function delete_entry_gui(self, node)
+	msg.post("main:/main#controller", "remove-entry-gui")
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and action.pressed then
+		if gui.pick_node(gui.get_node("play_button/box"), action.x, action.y) then
+			local root = gui.get_node("root")
+			local color = gui.get_color(root)
+			color.w = 0
+			gui.animate(root, gui.PROP_COLOR, color, gui.EASING_LINEAR, 0.2, 0, delete_entry_gui)
+			msg.post("main:/main#controller", "start-game")
+		end
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("show") then
+		local root = gui.get_node("root")
+		local color = gui.get_color(root)
+		color.w = 1
+		gui.animate(root, gui.PROP_COLOR, color, gui.EASING_LINEAR, 0.2)
+	end
+end

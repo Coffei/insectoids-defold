@@ -1,0 +1,61 @@
+local MENU = "/menu#collectionproxy"
+local MENU_GO = "entry_menu:/menu"
+local MENU_GUI = "entry_menu:/menu#entry"
+local GAME = "/game#collectionproxy"
+
+function init(self)
+	math.randomseed(os.clock()*100000000000)
+	msg.post("@render:", "use_fixed_fit_projection", { near = -1, far = 1 })
+	msg.post(MENU, "load")
+	msg.post(GAME, "load")
+	sound.play("#music")
+end
+
+local function unload_game(self, handle, time)
+	msg.post(GAME, "disable")
+	msg.post(GAME, "final")
+	msg.post(GAME, "unload")
+end
+
+function on_message(self, message_id, message, sender)
+	local menu_url = msg.url(MENU)
+	local game_url = msg.url(GAME)
+	if message_id == hash("proxy_loaded") and sender == menu_url then
+		msg.post(MENU, "init")
+		msg.post(MENU, "enable")
+		msg.post(MENU, "acquire_input_focus")
+		msg.post(MENU_GO, "acquire_input_focus")
+		msg.post(".", "acquire_input_focus")
+	end
+
+	if message_id == hash("proxy_unloaded") and sender == game_url then
+		msg.post(GAME, "load")
+	end
+	
+	if message_id == hash("start-game") then
+		sound.stop("#music")
+		msg.post(GAME, "init")
+		msg.post(GAME, "enable")
+		msg.post(GAME, "acquire_input_focus")
+		msg.post(".", "release_input_focus")
+	end
+
+	if message_id == hash("stop-game") then
+		timer.delay(0.2, false, unload_game)
+		msg.post(GAME, "release_input_focus")
+		msg.post(MENU, "enable")
+		msg.post(MENU_GUI, "show")
+		msg.post(".", "acquire_input_focus")
+		sound.play("#music", {delay=0.2})
+	end
+
+	if message_id == hash("remove-entry-gui") then
+		msg.post(MENU, "disable")
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("back") and action.pressed then
+		sys.exit(0)
+	end
+end

@@ -1,0 +1,116 @@
+local rendercam = require "rendercam.rendercam"
+local MIN_SPEED = 50
+local MAX_SPEED = 200
+local TOUCH_SIZE = 70
+local MIN_SCALE = 0.5
+local MAX_SCALE = 1.1
+
+go.property("type", 1)
+go.property("speed_ratio", 1)
+function init(self)
+	-- world bounds, the bounds are updated when window size changes
+	local world_min = rendercam.screen_to_world_2d(0, 0)
+	local world_max = rendercam.screen_to_world_2d(rendercam.window.x, rendercam.window.y)
+	self.max_x = world_max.x
+	self.min_x = world_min.x
+	rendercam.add_window_listener(msg.url())
+	
+	-- Speed
+	self.speed = vmath.lerp(math.random(), MIN_SPEED, MAX_SPEED) * self.speed_ratio
+
+	-- Scale
+	local sprite_scale = get_bird_scale(self.type)
+	self.scale = vmath.lerp(math.random(), MIN_SCALE, MAX_SCALE)
+	local scale = sprite_scale * self.scale
+	local s = vmath.vector3(scale)
+	go.set_scale(s)
+
+	-- Rotation
+	local sprite_rotation = get_bird_rotation(self.type)
+	local direction = math.random(0, 1)
+	local rotation_quat = vmath.quat_rotation_y(3.141592653 * bit.bxor(direction, sprite_rotation))
+	go.set_rotation(rotation_quat)
+
+	-- Position
+	self.bound = 100 * self.scale + 30
+	local p = get_starting_position(direction, self.bound)
+	go.set_position(p)
+
+	-- Speed
+	if(direction == 1) then
+		self.speed = self.speed
+	else
+		self.speed = -self.speed
+	end
+	msg.post("/main#controller", "bird-created")
+end
+
+function final(self)
+	rendercam.remove_window_listener(msg.url())
+	msg.post("/main#controller", "bird-deleted")
+end
+
+function update(self, dt)
+	local p = go.get_position()
+	p.x = p.x + self.speed * dt
+	local max = self.max_x  + self.bound
+	local min = self.min_x - self.bound
+	if (self.speed > 0 and p.x > max) or (self.speed < 0 and p.x < min) then
+		go.delete()
+	end
+	go.set_position(p)
+end
+
+function on_message(self, message_id, action, sender)
+	if message_id == hash("touch") then
+		local p = go.get_world_position()
+		local size = TOUCH_SIZE * self.scale
+		local min_x = p.x - size
+		local max_x = p.x + size
+		local min_y = p.y - size
+		local max_y = p.y + size
+		if action.world_x > min_x and action.world_x < max_x and action.world_y > min_y and action.world_y < max_y then
+			sound.play("#chirp")
+		end
+	end
+	if message_id == hash("window_update") then
+		local world_min = rendercam.screen_to_world_2d(0, 0)
+		local world_max = rendercam.screen_to_world_2d(action.window.x, action.window.y)
+		self.max_x = world_max.x
+		self.min_x = world_min.x
+	end
+end
+
+function get_bird_scale(type)
+	local scales = {
+		[1] = 0.26,
+		[2] = 0.26,
+		[3] = 0.24,
+		[4] = 0.28,
+		[5] = 0.30,
+		[6] = 0.28
+	}
+	local scale = scales[type]
+	if(scale) then
+		return scale
+	else
+		return 1
+	end
+end
+
+function get_bird_rotation(type)
+	local scales = {
+		[1] = 1,
+		[2] = 1,
+		[3] = 1,
+		[4] = 1,
+		[5] = 1,
+		[6] = 1
+	}
+	local scale = scales[type]
+	if(scale) then
+		return scale
+	else
+		return 0
+	end
+end

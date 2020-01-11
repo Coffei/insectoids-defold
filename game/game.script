@@ -1,0 +1,122 @@
+local rendercam = require "rendercam.rendercam"
+local GAME_LENGTH_SEC = 60
+
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.insects = {}
+	self.birds = {}
+	set_random_background()
+	self.total_insects = 0
+	self.score = 0
+	self.time = 0
+	self.time_sec = 0
+	self.running = true
+	self.showing_endgame = false
+	-- for handling BACK button to show the toast and exit the game
+	self.back_target = 0
+
+	-- start music
+	sound.play("#music")
+end
+
+function update(self, dt)
+	self.back_target = math.max(0, self.back_target - dt)
+	if self.time < GAME_LENGTH_SEC then
+		self.time = self.time + dt
+		local new_time_sec = math.floor(self.time)
+		if self.time_sec ~= new_time_sec then
+			self.time_sec = new_time_sec
+			local sec_until_end = GAME_LENGTH_SEC - self.time_sec
+			msg.post("/main#gui", "time_updated", {time=self.time_sec,time_until_end=sec_until_end})
+		end
+	elseif self.running then
+		self.running = false
+		msg.post("/bird_factory", "stop-spawning")
+		msg.post("/insect_factory", "stop-spawning")
+	elseif not self.showing_endgame and screen_clear(self) then
+		self.showing_endgame = true
+		msg.post("/main#endgame", "show", {score=self.score, total_insects=self.total_insects})
+		sound.stop("#music")
+		sound.play("#endsound")
+	end
+end
+
+local function world_coord(action)
+	return rendercam.screen_to_world_2d(action.screen_x, action.screen_y)
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and action.pressed then
+		local world_coord = world_coord(action)
+		action.world_x = world_coord.x
+		action.world_y = world_coord.y
+		
+		for k in pairs(self.insects) do
+			if self.insects[k] ~= nil then
+				msg.post(self.insects[k], "touch", action)
+			end
+		end
+		for k in pairs(self.birds) do
+			if self.birds[k] ~= nil then
+				msg.post(self.birds[k], "touch", action)
+			end
+		end
+	end
+	if action_id == hash("back") and action.pressed then
+		if self.showing_endgame or self.back_target > 0 then
+			msg.post("/main#endgame", "hide")
+			msg.post("main:/main#controller", "stop-game")
+		else
+			self.back_target = 2
+			msg.post("/main#gui", "show_close_toast")
+		end
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	local key = tostring(sender)
+	if message_id == hash("insect-created") then
+		self.insects[key] = sender
+		self.total_insects = self.total_insects + 1
+	end
+	
+	if message_id == hash("insect-deleted") then
+		self.insects[key] = nil
+	end
+
+	if message_id == hash("insect-killed") then
+		self.score = self.score + 1
+		msg.post("/main#gui", "score_updated", {score=self.score})
+	end
+
+	if message_id == hash("bird-created") then
+        self.birds[key] = sender
+	end
+
+    if message_id == hash("bird-deleted") then
+        self.birds[key] = nil
+    end
+end
+
+function set_random_background()
+    -- Randomly set the background to render
+	local background_idx = math.random(1, 7)
+	for idx=1,7 do
+		if idx ~= background_idx then
+			msg.post("/go_bg" .. idx, "disable")
+		end
+	end
+
+	-- Set appropriate scaling to render the repeated background
+	sprite.set_constant("/go_bg" .. background_idx .. "#sprite", "scale", vmath.vector4(120, 120, 1, 1))
+end
+
+function screen_clear(self)
+		for k in pairs(self.insects) do
+            return false
+        end
+        for k in pairs(self.birds) do
+            return false
+        end
+        return true
+end
